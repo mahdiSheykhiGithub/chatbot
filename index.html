@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>چت هوشمند کراتین سلیمی</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Tahoma, sans-serif;
+    }
+    body {
+      background: #f0f2f5;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .chat-container {
+      width: 100%;
+      max-width: 480px;
+      height: 90vh;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .header {
+      background: #0d9488;
+      color: white;
+      padding: 16px;
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .messages {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .message {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      line-height: 1.5;
+      font-size: 15px;
+    }
+    .user {
+      background: #0d9488;
+      color: white;
+      align-self: flex-start;
+      border-bottom-right-radius: 4px;
+    }
+    .bot {
+      background: #e5e7eb;
+      color: #111;
+      align-self: flex-end;
+      border-bottom-left-radius: 4px;
+    }
+    .input-area {
+      display: flex;
+      padding: 12px;
+      border-top: 1px solid #e5e7eb;
+      gap: 8px;
+    }
+    input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid #d1d5db;
+      border-radius: 24px;
+      outline: none;
+      font-size: 15px;
+    }
+    button {
+      background: #0d9488;
+      color: white;
+      border: none;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+    }
+    button:disabled {
+      background: #99f6e4;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="header">دستیار هوشمند کراتین سلیمی</div>
+    <div class="messages" id="messages">
+      <div class="message bot">سلام! چطور می‌تونم کمکت کنم؟</div>
+    </div>
+    <div class="input-area">
+      <input type="text" id="userInput" placeholder="سوال خود را بنویسید..." onkeypress="if(event.key==='Enter') sendMessage()">
+      <button onclick="sendMessage()" id="sendBtn">➤</button>
+    </div>
+  </div>
+
+  <script>
+    const API_KEY = "sk-d7ICd2VazsMA2nXdCy4wp9skCiR90GrFbihSPVySX4Vj8a3e";
+
+    const API_URL = "https://api.gapgpt.app/v1/chat/completions";
+
+    async function sendMessage() {
+      const input = document.getElementById("userInput");
+      const messages = document.getElementById("messages");
+      const sendBtn = document.getElementById("sendBtn");
+      const text = input.value.trim();
+
+      if (!text) return;
+
+      messages.innerHTML += `<div class="message user">${text}</div>`;
+      input.value = "";
+      sendBtn.disabled = true;
+
+      const loadingId = "loading-" + Date.now();
+      messages.innerHTML += `<div class="message bot" id="${loadingId}">در حال فکر کردن...</div>`;
+      messages.scrollTop = messages.scrollHeight;
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${API_KEY}`
+          },
+          body: JSON.stringify({
+            model: "gemini-3-flash-preview",
+            messages: [
+              {
+                role: "system",
+                content: "تو یک دستیار هوشمند و مفید هستی. به سوالات کاربر به صورت واضح، مختصر و بسیار کوتاه جواب بده."
+              },
+              {
+                role: "user",
+                content: text
+              }
+            ]
+          })
+        });
+
+        const data = await response.json();
+
+        document.getElementById(loadingId).remove();
+
+        if (data.choices && data.choices[0]) {
+          const reply = data.choices[0].message.content;
+          messages.innerHTML += `<div class="message bot">${reply}</div>`;
+        } else {
+          messages.innerHTML += `<div class="message bot">خطا در دریافت پاسخ</div>`;
+          console.error(data);
+        }
+      } catch (error) {
+        document.getElementById(loadingId).remove();
+        messages.innerHTML += `<div class="message bot">خطا در ارتباط با سرور</div>`;
+        console.error(error);
+      }
+
+      sendBtn.disabled = false;
+      messages.scrollTop = messages.scrollHeight;
+    }
+  </script>
+</body>
+</html>
